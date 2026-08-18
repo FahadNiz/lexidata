@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "db:test": "node scripts/test-database.js",
+    "data:validate": "node scripts/validate-wordnet.js",
+    "data:import": "node scripts/import-wordnet.js"
   },
   "keywords": [],
   "author": "",
