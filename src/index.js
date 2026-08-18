@@ -1,34 +1,32 @@
 const express = require("express");
+
+const { loadEnvironment } = require("./config/env");
+const wordRoutes = require("./routes/word.routes");
+const notFoundMiddleware = require("./middleware/not-found.middleware");
+const errorMiddleware = require("./middleware/error.middleware");
+
+const env = loadEnvironment();
+
 const app = express();
-const PORT = 3000;
 
-const words = {
-    hello: {
-        word: "hello",
-        definition: "A greeting or expression of goodwill.",
-        partOfSpeech: "interjection"
-    },
+app.use(express.json());
 
-    computer: {
-        word: "computer",
-        definition: "An electronic device that processes data.",
-        partOfSpeech: "noun"
-    },
-
-    lexicon: {
-        word: "lexicon",
-        definition: "A vocabulary or collection of words.",
-        partOfSpeech: "noun"
-    }
-};
-
-app.get("/api/words/:word", (req, res) => {
-    const word = req.params.word;
-    const result = words[word];
-
-    res.json(result);
+app.get("/health", (req, res) => {
+    res.status(200).json({
+        status: "ok"
+    });
 });
 
-app.listen(PORT, () => {
-    console.log(`Lexicon Api running on port , ${PORT} , http://localhost:${PORT}`)
-} );
+app.use(
+    "/api/v1/words",
+    wordRoutes
+);
+
+app.use(notFoundMiddleware);
+app.use(errorMiddleware);
+
+app.listen(env.port, () => {
+    console.log(
+        `Lexicon API running on port ${env.port}`
+    );
+});
