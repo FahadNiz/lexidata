@@ -1,18 +1,37 @@
 {
   "name": "lexicon",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "An open-source English dictionary API powered by WordNet and PostgreSQL.",
+  "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
+    "test": "node --test \"tests/**/*.test.js\"",
     "db:test": "node scripts/test-database.js",
     "data:validate": "node scripts/validate-wordnet.js",
     "data:import": "node scripts/import-wordnet.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "dictionary",
+    "wordnet",
+    "english",
+    "dictionary-api",
+    "words",
+    "nlp",
+    "natural-language-processing",
+    "postgresql",
+    "rest-api"
+  ],
+  "author": "Fahad Niz",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FahadNiz/lexicon.git"
+  },
+  "bugs": {
+    "url": "https://github.com/FahadNiz/lexicon/issues"
+  },
+  "homepage": "https://github.com/FahadNiz/lexicon",
   "type": "commonjs",
   "dependencies": {
     "dotenv": "^17.4.2",

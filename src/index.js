@@ -1,44 +1,28 @@
-const express = require("express");
-
 const { loadEnvironment } = require("./config/env");
-const wordRoutes = require("./routes/word.routes");
-const searchRoutes = require("./routes/search.routes");
-const randomRoutes = require("./routes/random.routes");
-const notFoundMiddleware = require("./middleware/not-found.middleware");
-const errorMiddleware = require("./middleware/error.middleware");
+const createApp = require("./app");
 
 const env = loadEnvironment();
+const app = createApp();
 
-const app = express();
-
-app.use(express.json());
-
-app.get("/health", (req, res) => {
-    res.status(200).json({
-        status: "ok"
-    });
+const server = app.listen(env.port, () => {
+    console.log(
+        `Lexicon API running on port http://localhost:${env.port}`
+    );
 });
 
-app.use(
-    "/api/v1/words",
-    wordRoutes
-);
+function shutdown(signal) {
+    console.log(`${signal} received. Shutting down Lexicon API...`);
 
-app.use(
-    "/api/v1/search",
-    searchRoutes
-);
+    server.close(() => {
+        console.log("Lexicon API stopped.");
+        process.exit(0);
+    });
+}
 
-app.use(
-    "/api/v1/random",
-    randomRoutes
-);
+process.on("SIGINT", () => {
+    shutdown("SIGINT");
+});
 
-app.use(notFoundMiddleware);
-app.use(errorMiddleware);
-
-app.listen(env.port, () => {
-    console.log(
-        `Lexicon API running on port https://localhost:${env.port}`
-    );
+process.on("SIGTERM", () => {
+    shutdown("SIGTERM");
 });
