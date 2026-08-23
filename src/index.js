@@ -2,6 +2,7 @@ const express = require("express");
 
 const { loadEnvironment } = require("./config/env");
 const wordRoutes = require("./routes/word.routes");
+const searchRoutes = require("./routes/search.routes");
 const notFoundMiddleware = require("./middleware/not-found.middleware");
 const errorMiddleware = require("./middleware/error.middleware");
 
@@ -22,11 +23,16 @@ app.use(
     wordRoutes
 );
 
+app.use(
+    "/api/v1/search",
+    searchRoutes
+);
+
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);
 
 app.listen(env.port, () => {
     console.log(
-        `Lexicon API running on port ${env.port}`
+        `Lexicon API running on port https://localhost:${env.port}`
     );
 });
