@@ -1,7 +1,11 @@
 const pool = require("../database/client");
 
-const DEFAULT_LIMIT = 1;
-const MAX_LIMIT = 100;
+const {
+    DEFAULT_LIMIT,
+    MAX_LIMIT,
+    normalizeFilters,
+    buildWordFilters
+} = require("../utils/word-filters");
 
 async function getRandomWords({
     limit = DEFAULT_LIMIT,
@@ -9,60 +13,39 @@ async function getRandomWords({
     minLength,
     maxLength
 } = {}) {
-    const parsedLimit = Number(limit);
+    const filters = normalizeFilters({
+        limit,
+        page: 1,
+        partOfSpeech,
+        minLength,
+        maxLength
+    });
 
-    const safeLimit =
-        Number.isInteger(parsedLimit) &&
-        parsedLimit > 0
-            ? Math.min(parsedLimit, MAX_LIMIT)
-            : DEFAULT_LIMIT;
+    const safeLimit = Math.min(
+        filters.limit,
+        MAX_LIMIT
+    );
 
-    const values = [safeLimit];
-    const conditions = [];
+    const {
+        values,
+        whereClause
+    } = buildWordFilters({
+        partOfSpeech: filters.partOfSpeech,
+        minLength: filters.minLength,
+        maxLength: filters.maxLength
+    });
 
-    if (partOfSpeech) {
-        values.push(partOfSpeech);
+    const limitParameter = values.length + 1;
 
-        conditions.push(
-            `EXISTS (
-                SELECT 1
-                FROM word_senses ws
-                JOIN synsets s
-                    ON s.id = ws.synset_id
-                WHERE ws.word_id = words.id
-                  AND s.part_of_speech = $${values.length}
-            )`
-        );
-    }
-
-    if (minLength !== undefined) {
-        values.push(Number(minLength));
-
-        conditions.push(
-            `char_length(word) >= $${values.length}`
-        );
-    }
-
-    if (maxLength !== undefined) {
-        values.push(Number(maxLength));
-
-        conditions.push(
-            `char_length(word) <= $${values.length}`
-        );
-    }
-
-    const whereClause =
-        conditions.length > 0
-            ? `WHERE ${conditions.join("\nAND ")}`
-            : "";
+    values.push(safeLimit);
 
     const query = `
         SELECT
-            word
+            words.word
         FROM words
         ${whereClause}
         ORDER BY RANDOM()
-        LIMIT $1;
+        LIMIT $${limitParameter};
     `;
 
     const result = await pool.query(
@@ -77,15 +60,11 @@ async function getRandomWords({
         count: result.rows.length,
         filters: {
             partOfSpeech:
-                partOfSpeech || null,
+                filters.partOfSpeech || null,
             minLength:
-                minLength !== undefined
-                    ? Number(minLength)
-                    : null,
+                filters.minLength ?? null,
             maxLength:
-                maxLength !== undefined
-                    ? Number(maxLength)
-                    : null
+                filters.maxLength ?? null
         }
     };
 }

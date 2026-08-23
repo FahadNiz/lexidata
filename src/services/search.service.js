@@ -1,36 +1,34 @@
 const pool = require("../database/client");
 
-const DEFAULT_LIMIT = 20;
-const MAX_LIMIT = 100;
+const {
+    DEFAULT_LIMIT,
+    MAX_LIMIT,
+    normalizeFilters
+} = require("../utils/word-filters");
 
 async function searchWords({
     query,
     limit = DEFAULT_LIMIT,
     page = 1
 }) {
-    const normalizedQuery = query
-        .trim()
-        .toLowerCase();
+    const normalizedQuery =
+        query.trim().toLowerCase();
 
-    const parsedLimit = Number(limit);
-    const parsedPage = Number(page);
+    const filters = normalizeFilters({
+        limit,
+        page
+    });
 
-    const safeLimit =
-        Number.isInteger(parsedLimit) &&
-        parsedLimit > 0
-            ? Math.min(parsedLimit, MAX_LIMIT)
-            : DEFAULT_LIMIT;
-
-    const safePage =
-        Number.isInteger(parsedPage) &&
-        parsedPage > 0
-            ? parsedPage
-            : 1;
+    const safeLimit = Math.min(
+        filters.limit,
+        MAX_LIMIT
+    );
 
     const offset =
-        (safePage - 1) * safeLimit;
+        (filters.page - 1) * safeLimit;
 
-    const searchPattern = `${normalizedQuery}%`;
+    const searchPattern =
+        `${normalizedQuery}%`;
 
     const countQuery = `
         SELECT COUNT(*) AS total
@@ -49,21 +47,23 @@ async function searchWords({
         OFFSET $3;
     `;
 
-    const [countResult, wordsResult] =
-        await Promise.all([
-            pool.query(
-                countQuery,
-                [searchPattern]
-            ),
-            pool.query(
-                wordsQuery,
-                [
-                    searchPattern,
-                    safeLimit,
-                    offset
-                ]
-            )
-        ]);
+    const [
+        countResult,
+        wordsResult
+    ] = await Promise.all([
+        pool.query(
+            countQuery,
+            [searchPattern]
+        ),
+        pool.query(
+            wordsQuery,
+            [
+                searchPattern,
+                safeLimit,
+                offset
+            ]
+        )
+    ]);
 
     const total =
         Number(countResult.rows[0].total);
@@ -71,7 +71,9 @@ async function searchWords({
     const totalPages =
         total === 0
             ? 0
-            : Math.ceil(total / safeLimit);
+            : Math.ceil(
+                total / safeLimit
+            );
 
     return {
         query: normalizedQuery,
@@ -79,7 +81,7 @@ async function searchWords({
             (row) => row.word
         ),
         pagination: {
-            page: safePage,
+            page: filters.page,
             limit: safeLimit,
             total,
             totalPages
