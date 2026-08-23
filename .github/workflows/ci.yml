@@ -19,21 +19,21 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: lexicon
+          POSTGRES_DB: lexidata
         ports:
           - 5432:5432
         options: >-
-          --health-cmd="pg_isready -U postgres -d lexicon"
+          --health-cmd="pg_isready -U postgres -d lexidata"
           --health-interval=5s
           --health-timeout=5s
           --health-retries=10
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -48,7 +48,7 @@ jobs:
           psql \
             -h localhost \
             -U postgres \
-            -d lexicon \
+            -d lexidata \
             -f src/database/schema.sql
 
       - name: Load test data
@@ -58,12 +58,12 @@ jobs:
           psql \
             -h localhost \
             -U postgres \
-            -d lexicon \
+            -d lexidata \
             -f tests/fixtures/test-data.sql
 
       - name: Run tests
         env:
           NODE_ENV: test
           PORT: 3000
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lexicon
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/lexidata
         run: npm test

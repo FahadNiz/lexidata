@@ -1,7 +1,7 @@
 {
-  "name": "lexicon",
+  "name": "lexidata",
   "version": "1.0.0",
-  "description": "An open-source English dictionary API powered by WordNet and PostgreSQL.",
+  "description": "Open lexical data and a REST API for English words, definitions, senses, examples, pronunciations, and search.",
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
@@ -13,9 +13,10 @@
   },
   "keywords": [
     "dictionary",
-    "wordnet",
-    "english",
     "dictionary-api",
+    "english",
+    "lexical-data",
+    "wordnet",
     "words",
     "nlp",
     "natural-language-processing",
@@ -26,13 +27,16 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/FahadNiz/lexicon.git"
+    "url": "https://github.com/FahadNiz/lexidata.git"
   },
   "bugs": {
-    "url": "https://github.com/FahadNiz/lexicon/issues"
+    "url": "https://github.com/FahadNiz/lexidata/issues"
   },
-  "homepage": "https://github.com/FahadNiz/lexicon",
+  "homepage": "https://github.com/FahadNiz/lexidata",
   "type": "commonjs",
+  "engines": {
+    "node": ">=24"
+  },
   "dependencies": {
     "dotenv": "^17.4.2",
     "express": "^5.2.1",

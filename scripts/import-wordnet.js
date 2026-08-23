@@ -923,7 +923,7 @@ async function main() {
 
     try {
         console.log(
-            "Starting Lexicon WordNet import...\n"
+            "Starting Lexidata WordNet import...\n"
         );
 
         const allSynsets = loadSynsets();

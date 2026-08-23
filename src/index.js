@@ -6,15 +6,15 @@ const app = createApp();
 
 const server = app.listen(env.port, () => {
     console.log(
-        `Lexicon API running on port http://localhost:${env.port}`
+        `Lexidata API running on port http://localhost:${env.port}`
     );
 });
 
 function shutdown(signal) {
-    console.log(`${signal} received. Shutting down Lexicon API...`);
+    console.log(`${signal} received. Shutting down Lexidata API...`);
 
     server.close(() => {
-        console.log("Lexicon API stopped.");
+        console.log("Lexidata API stopped.");
         process.exit(0);
     });
 }

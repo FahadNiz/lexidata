@@ -1,62 +1,47 @@
-# Lexicon
+# Lexidata
 
-An open-source English dictionary API powered by WordNet, PostgreSQL, Node.js, and Express.
+Open lexical data and a developer-friendly REST API for English words.
 
-Lexicon provides a REST API for accessing English words, definitions, examples, pronunciations, parts of speech, and WordNet senses.
+Lexidata is an open-source project built with Node.js, Express, PostgreSQL, and data derived from Princeton WordNet.
 
-It is designed for applications that need dictionary data, word discovery, search, random word generation, NLP utilities, educational tools, games, language-learning applications, and other language-focused projects.
+It provides word lookup, definitions, examples, pronunciations, parts of speech, search, random words, and reusable word filters.
 
-## Features
+## v1.0.0
+
+Lexidata v1 provides the core dictionary API and query system.
+
+### Features
 
 - Word lookup
+- Case-insensitive lookup
 - Definitions
 - Examples
 - Pronunciations
-- Multiple senses per word
+- Multiple senses
 - Parts of speech
 - WordNet synset identifiers
 - Prefix search
 - Exact search
 - Contains search
 - Pagination
-- Random word generation
+- Random words
 - Part-of-speech filtering
 - Minimum and maximum word length filtering
 - Prefix, suffix, and contains filtering
 - PostgreSQL-backed storage
-- REST API
-- Open-source development model
-
-## Tech Stack
-
-- Node.js
-- Express
-- PostgreSQL
-- WordNet
-- JavaScript
-- `pg`
-- Nodemon
-
-## Current Version
-
-`v1.0.0`
-
-Lexicon v1 focuses on the core dictionary API, word lookup, search, random word generation, and reusable word filtering.
-
-Future releases may add dataset exports, additional API endpoints, developer tooling, an npm package, and a public web interface.
+- Automated API tests
+- GitHub Actions CI
 
 ## Quick Start
 
 ### Requirements
 
-Install:
-
-- Node.js 24 or later
+- Node.js 24+
 - PostgreSQL 18 or compatible PostgreSQL version
 - Git
 
 ### Clone
 
 ```bash
-git clone https://github.com/FahadNiz/lexicon.git
-cd lexicon
+git clone https://github.com/FahadNiz/lexidata.git
+cd lexidata
