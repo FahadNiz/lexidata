@@ -5,6 +5,12 @@ const VALID_PARTS_OF_SPEECH = new Set([
     "adverb"
 ]);
 
+const VALID_MATCH_MODES = new Set([
+    "prefix",
+    "contains",
+    "exact"
+]);
+
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
@@ -13,7 +19,11 @@ function validateFilters({
     page,
     partOfSpeech,
     minLength,
-    maxLength
+    maxLength,
+    startsWith,
+    endsWith,
+    contains,
+    match
 } = {}) {
     if (
         limit !== undefined &&
@@ -97,6 +107,39 @@ function validateFilters({
         };
     }
 
+    for (const [name, value] of [
+        ["startsWith", startsWith],
+        ["endsWith", endsWith],
+        ["contains", contains]
+    ]) {
+        if (
+            value !== undefined &&
+            (
+                typeof value !== "string" ||
+                !value.trim()
+            )
+        ) {
+            return {
+                code: `INVALID_${name.toUpperCase()}`,
+                message:
+                    `The '${name}' parameter must be a non-empty string.`
+            };
+        }
+    }
+
+    if (
+        match !== undefined &&
+        !VALID_MATCH_MODES.has(
+            String(match).toLowerCase()
+        )
+    ) {
+        return {
+            code: "INVALID_MATCH",
+            message:
+                "The 'match' parameter must be one of: prefix, contains, exact."
+        };
+    }
+
     return null;
 }
 
@@ -105,7 +148,11 @@ function normalizeFilters({
     page,
     partOfSpeech,
     minLength,
-    maxLength
+    maxLength,
+    startsWith,
+    endsWith,
+    contains,
+    match
 } = {}) {
     return {
         limit:
@@ -131,14 +178,37 @@ function normalizeFilters({
         maxLength:
             maxLength !== undefined
                 ? Number(maxLength)
-                : undefined
+                : undefined,
+
+        startsWith:
+            startsWith !== undefined
+                ? String(startsWith).trim().toLowerCase()
+                : undefined,
+
+        endsWith:
+            endsWith !== undefined
+                ? String(endsWith).trim().toLowerCase()
+                : undefined,
+
+        contains:
+            contains !== undefined
+                ? String(contains).trim().toLowerCase()
+                : undefined,
+
+        match:
+            match !== undefined
+                ? String(match).toLowerCase()
+                : "prefix"
     };
 }
 
 function buildWordFilters({
     partOfSpeech,
     minLength,
-    maxLength
+    maxLength,
+    startsWith,
+    endsWith,
+    contains
 } = {}) {
     const values = [];
     const conditions = [];
@@ -174,6 +244,30 @@ function buildWordFilters({
         );
     }
 
+    if (startsWith !== undefined) {
+        values.push(`${startsWith}%`);
+
+        conditions.push(
+            `words.normalized_word LIKE $${values.length}`
+        );
+    }
+
+    if (endsWith !== undefined) {
+        values.push(`%${endsWith}`);
+
+        conditions.push(
+            `words.normalized_word LIKE $${values.length}`
+        );
+    }
+
+    if (contains !== undefined) {
+        values.push(`%${contains}%`);
+
+        conditions.push(
+            `words.normalized_word LIKE $${values.length}`
+        );
+    }
+
     return {
         values,
         whereClause:
@@ -187,6 +281,7 @@ module.exports = {
     DEFAULT_LIMIT,
     MAX_LIMIT,
     VALID_PARTS_OF_SPEECH,
+    VALID_MATCH_MODES,
     validateFilters,
     normalizeFilters,
     buildWordFilters

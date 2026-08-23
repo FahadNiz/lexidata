@@ -11,14 +11,20 @@ async function getRandomWords({
     limit = DEFAULT_LIMIT,
     partOfSpeech,
     minLength,
-    maxLength
+    maxLength,
+    startsWith,
+    endsWith,
+    contains
 } = {}) {
     const filters = normalizeFilters({
         limit,
         page: 1,
         partOfSpeech,
         minLength,
-        maxLength
+        maxLength,
+        startsWith,
+        endsWith,
+        contains
     });
 
     const safeLimit = Math.min(
@@ -32,7 +38,10 @@ async function getRandomWords({
     } = buildWordFilters({
         partOfSpeech: filters.partOfSpeech,
         minLength: filters.minLength,
-        maxLength: filters.maxLength
+        maxLength: filters.maxLength,
+        startsWith: filters.startsWith,
+        endsWith: filters.endsWith,
+        contains: filters.contains
     });
 
     const limitParameter = values.length + 1;
@@ -64,7 +73,13 @@ async function getRandomWords({
             minLength:
                 filters.minLength ?? null,
             maxLength:
-                filters.maxLength ?? null
+                filters.maxLength ?? null,
+            startsWith:
+                filters.startsWith || null,
+            endsWith:
+                filters.endsWith || null,
+            contains:
+                filters.contains || null
         }
     };
 }

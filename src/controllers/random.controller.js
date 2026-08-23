@@ -9,7 +9,10 @@ async function getRandomWords(req, res, next) {
             limit,
             partOfSpeech,
             minLength,
-            maxLength
+            maxLength,
+            startsWith,
+            endsWith,
+            contains
         } = req.query;
 
         const validationError =
@@ -17,7 +20,10 @@ async function getRandomWords(req, res, next) {
                 limit,
                 partOfSpeech,
                 minLength,
-                maxLength
+                maxLength,
+                startsWith,
+                endsWith,
+                contains
             });
 
         if (validationError) {
@@ -31,7 +37,10 @@ async function getRandomWords(req, res, next) {
                 limit,
                 partOfSpeech,
                 minLength,
-                maxLength
+                maxLength,
+                startsWith,
+                endsWith,
+                contains
             });
 
         return res.status(200).json({
