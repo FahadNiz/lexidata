@@ -44,3 +44,13 @@ GET /health
 GET /api/v1/words/:word
 GET /api/v1/search
 GET /api/v1/random
+```
+
+### Production
+
+- Production API deployed at https://api.lexidata.dev
+- HTTPS enabled with Let's Encrypt
+- Nginx reverse proxy
+- Oracle Cloud deployment
+- Neon PostgreSQL production database
+- systemd service management
