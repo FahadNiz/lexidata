@@ -1,76 +1,199 @@
 const pool = require("../database/client");
+const {
+    normalizeFilters,
+    buildWordFilters
+} = require("../utils/word-filters");
+const {
+    getWordRecords
+} = require("./dataset-record.service");
 
 async function getDataset({
-    limit = 100,
-    offset = 0,
-    pos = null
-}) {
-    const values = [];
-    const conditions = [];
+    limit,
+    page,
+    partOfSpeech,
+    minLength,
+    maxLength,
+    startsWith,
+    endsWith,
+    contains
+} = {}) {
+    const filters = normalizeFilters({
+        limit,
+        page,
+        partOfSpeech,
+        minLength,
+        maxLength,
+        startsWith,
+        endsWith,
+        contains
+    });
 
-    if (pos) {
-        values.push(pos);
-
-        conditions.push(`
-            EXISTS (
-                SELECT 1
-                FROM word_senses ws_filter
-                JOIN synsets s_filter
-                    ON s_filter.id = ws_filter.synset_id
-                WHERE ws_filter.word_id = w.id
-                  AND s_filter.part_of_speech = $${values.length}
-            )
-        `);
-    }
-
-    values.push(limit);
-    const limitParameter = `$${values.length}`;
-
-    values.push(offset);
-    const offsetParameter = `$${values.length}`;
-
-    const whereClause =
-        conditions.length > 0
-            ? `WHERE ${conditions.join(" AND ")}`
-            : "";
-
-    const query = `
-        SELECT
-            w.word,
-            COALESCE(
-                ARRAY_AGG(DISTINCT s.part_of_speech)
-                    FILTER (WHERE s.part_of_speech IS NOT NULL),
-                '{}'
-            ) AS part_of_speech
-        FROM words w
-        LEFT JOIN word_senses ws
-            ON ws.word_id = w.id
-        LEFT JOIN synsets s
-            ON s.id = ws.synset_id
-        ${whereClause}
-        GROUP BY w.id, w.word
-        ORDER BY w.normalized_word ASC, w.id ASC
-        LIMIT ${limitParameter}
-        OFFSET ${offsetParameter};
-    `;
+    const {
+        values: filterValues,
+        whereClause
+    } = buildWordFilters({
+        partOfSpeech: filters.partOfSpeech,
+        minLength: filters.minLength,
+        maxLength: filters.maxLength,
+        startsWith: filters.startsWith,
+        endsWith: filters.endsWith,
+        contains: filters.contains
+    });
 
     const countQuery = `
-        SELECT COUNT(*)
-        FROM words w
+        SELECT COUNT(*)::integer AS total
+        FROM words
         ${whereClause};
     `;
 
-    const [dataResult, countResult] = await Promise.all([
-        pool.query(query, values),
-        pool.query(countQuery, values.slice(0, pos ? 1 : 0))
-    ]);
+    const countResult = await pool.query(
+        countQuery,
+        filterValues
+    );
+
+    const total = countResult.rows[0].total;
+
+    const offset =
+        (filters.page - 1) * filters.limit;
+
+    const dataValues = [
+        ...filterValues,
+        filters.limit,
+        offset
+    ];
+
+    const limitPlaceholder =
+        `$${filterValues.length + 1}`;
+
+    const offsetPlaceholder =
+        `$${filterValues.length + 2}`;
+
+    const dataQuery = `
+        SELECT
+            words.id,
+            words.word
+        FROM words
+        ${whereClause}
+        ORDER BY
+            words.normalized_word,
+            words.id
+        LIMIT ${limitPlaceholder}
+        OFFSET ${offsetPlaceholder};
+    `;
+
+    const dataResult = await pool.query(
+        dataQuery,
+        dataValues
+    );
+
+    const wordIds = dataResult.rows.map(
+        row => row.id
+    );
+
+    const records = await getWordRecords({
+        wordIds
+    });
+
+    const recordMap = new Map(
+        records.map(record => [
+            record.word,
+            record
+        ])
+    );
+
+    const data = dataResult.rows.map(row => {
+        return (
+            recordMap.get(row.word) || {
+                word: row.word,
+                part_of_speech: [],
+                pronunciations: [],
+                senses: []
+            }
+        );
+    });
 
     return {
-        words: dataResult.rows,
-        total: Number(countResult.rows[0].count)
+        data,
+        pagination: {
+            page: filters.page,
+            limit: filters.limit,
+            offset,
+            total,
+            totalPages:
+                Math.ceil(
+                    total / filters.limit
+                )
+        }
     };
 }
 
+async function getDatasetBatch({
+    limit = 1000,
+    offset = 0,
+    partOfSpeech,
+    minLength,
+    maxLength,
+    startsWith,
+    endsWith,
+    contains
+} = {}) {
+    const filters = normalizeFilters({
+        limit,
+        page: 1,
+        partOfSpeech,
+        minLength,
+        maxLength,
+        startsWith,
+        endsWith,
+        contains
+    });
+
+    const {
+        values: filterValues,
+        whereClause
+    } = buildWordFilters({
+        partOfSpeech: filters.partOfSpeech,
+        minLength: filters.minLength,
+        maxLength: filters.maxLength,
+        startsWith: filters.startsWith,
+        endsWith: filters.endsWith,
+        contains: filters.contains
+    });
+
+    const values = [
+        ...filterValues,
+        filters.limit,
+        offset
+    ];
+
+    const limitPlaceholder =
+        `$${filterValues.length + 1}`;
+
+    const offsetPlaceholder =
+        `$${filterValues.length + 2}`;
+
+    const query = `
+        SELECT
+            words.id,
+            words.word
+        FROM words
+        ${whereClause}
+        ORDER BY
+            words.normalized_word,
+            words.id
+        LIMIT ${limitPlaceholder}
+        OFFSET ${offsetPlaceholder};
+    `;
+
+    const result = await pool.query(
+        query,
+        values
+    );
+
+    return result.rows;
+}
+
 module.exports = {
-    getDataset
+    getDataset,
+    getDatasetBatch
 };

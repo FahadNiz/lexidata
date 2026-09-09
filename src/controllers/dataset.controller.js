@@ -1,71 +1,671 @@
 const datasetService = require("../services/dataset.service");
+const {
+    validateFilters,
+    normalizeFilters
+} = require("../utils/word-filters");
+const {
+    validateFields,
+    normalizeFields
+} = require("../utils/dataset-fields");
+
+const VALID_FORMATS = new Set([
+    "json",
+    "jsonl",
+    "csv",
+    "txt"
+]);
+
+const EXPORT_BATCH_SIZE = 1000;
+
+function selectFields(record, fields) {
+    const selected = {};
+
+    for (const field of fields) {
+        switch (field) {
+            case "word":
+                selected.word = record.word;
+                break;
+
+            case "part_of_speech":
+                selected.part_of_speech =
+                    record.part_of_speech || [];
+                break;
+
+            case "pronunciations":
+                selected.pronunciations =
+                    record.pronunciations || [];
+                break;
+
+            case "senses":
+                selected.senses =
+                    record.senses || [];
+                break;
+
+            case "synsets":
+                selected.synsets = [
+                    ...new Map(
+                        (record.senses || [])
+                            .map(sense => [
+                                sense.synset,
+                                {
+                                    synset: sense.synset,
+                                    ili_id: sense.ili_id,
+                                    part_of_speech:
+                                        sense.part_of_speech
+                                }
+                            ])
+                    ).values()
+                ];
+                break;
+
+            case "definitions":
+                selected.definitions = [
+                    ...new Set(
+                        (record.senses || [])
+                            .map(sense => sense.definition)
+                            .filter(Boolean)
+                    )
+                ];
+                break;
+
+            case "examples":
+                selected.examples = [
+                    ...new Set(
+                        (record.senses || [])
+                            .flatMap(
+                                sense =>
+                                    sense.examples || []
+                            )
+                            .filter(Boolean)
+                    )
+                ];
+                break;
+
+            case "relations":
+                selected.relations =
+                    record.relations || {};
+                break;
+        }
+    }
+
+    return selected;
+}
+
+function escapeCsv(value) {
+    if (value === null || value === undefined) {
+        return "";
+    }
+
+    const stringValue = String(value);
+
+    if (
+        stringValue.includes(",") ||
+        stringValue.includes('"') ||
+        stringValue.includes("\n") ||
+        stringValue.includes("\r")
+    ) {
+        return `"${stringValue.replace(
+            /"/g,
+            '""'
+        )}"`;
+    }
+
+    return stringValue;
+}
+
+function csvValue(value) {
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return "";
+    }
+
+    if (
+        typeof value === "object"
+    ) {
+        return JSON.stringify(value);
+    }
+
+    return String(value);
+}
+
+async function streamCsv({
+    res,
+    filters,
+    fields
+}) {
+    res.setHeader(
+        "Content-Type",
+        "text/csv; charset=utf-8"
+    );
+
+    res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="lexidata-dataset.csv"'
+    );
+
+    res.write(
+        fields
+            .map(escapeCsv)
+            .join(",") + "\n"
+    );
+
+    let offset = 0;
+
+    while (true) {
+        const rows =
+            await datasetService.getDatasetBatch({
+                ...filters,
+                limit:
+                    EXPORT_BATCH_SIZE,
+                offset
+            });
+
+        if (rows.length === 0) {
+            break;
+        }
+
+        const wordIds =
+            rows.map(row => row.id);
+
+        const records =
+            await require(
+                "../services/dataset-record.service"
+            ).getWordRecords({
+                wordIds
+            });
+
+        const recordMap = new Map(
+            records.map(record => [
+                record.word_id,
+                record
+            ])
+        );
+
+        for (const row of rows) {
+            const record =
+                recordMap.get(row.id) || {
+                    word_id: row.id,
+                    word: row.word,
+                    part_of_speech: [],
+                    pronunciations: [],
+                    senses: []
+                };
+
+            const selected =
+                selectFields(
+                    record,
+                    fields
+                );
+
+            const values =
+                fields.map(field =>
+                    escapeCsv(
+                        csvValue(
+                            selected[field]
+                        )
+                    )
+                );
+
+            res.write(
+                values.join(",") + "\n"
+            );
+        }
+
+        offset += rows.length;
+
+        if (
+            rows.length <
+            EXPORT_BATCH_SIZE
+        ) {
+            break;
+        }
+    }
+
+    res.end();
+}
+
+async function streamJsonl({
+    res,
+    filters,
+    fields
+}) {
+    res.setHeader(
+        "Content-Type",
+        "application/x-ndjson; charset=utf-8"
+    );
+
+    res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="lexidata-dataset.jsonl"'
+    );
+
+    let offset = 0;
+
+    while (true) {
+        const rows =
+            await datasetService.getDatasetBatch({
+                ...filters,
+                limit:
+                    EXPORT_BATCH_SIZE,
+                offset
+            });
+
+        if (rows.length === 0) {
+            break;
+        }
+
+        const wordIds =
+            rows.map(row => row.id);
+
+        const records =
+            await require(
+                "../services/dataset-record.service"
+            ).getWordRecords({
+                wordIds
+            });
+
+        const recordMap = new Map(
+            records.map(record => [
+                record.word_id,
+                record
+            ])
+        );
+
+        for (const row of rows) {
+            const record =
+                recordMap.get(row.id) || {
+                    word_id: row.id,
+                    word: row.word,
+                    part_of_speech: [],
+                    pronunciations: [],
+                    senses: []
+                };
+
+            const selected =
+                selectFields(
+                    record,
+                    fields
+                );
+
+            res.write(
+                JSON.stringify(selected) +
+                "\n"
+            );
+        }
+
+        offset += rows.length;
+
+        if (
+            rows.length <
+            EXPORT_BATCH_SIZE
+        ) {
+            break;
+        }
+    }
+
+    res.end();
+}
+
+async function streamTxt({
+    res,
+    filters,
+    fields
+}) {
+    res.setHeader(
+        "Content-Type",
+        "text/plain; charset=utf-8"
+    );
+
+    res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="lexidata-dataset.txt"'
+    );
+
+    let offset = 0;
+
+    while (true) {
+        const rows =
+            await datasetService.getDatasetBatch({
+                ...filters,
+                limit:
+                    EXPORT_BATCH_SIZE,
+                offset
+            });
+
+        if (rows.length === 0) {
+            break;
+        }
+
+        const wordIds =
+            rows.map(row => row.id);
+
+        const records =
+            await require(
+                "../services/dataset-record.service"
+            ).getWordRecords({
+                wordIds
+            });
+
+        const recordMap = new Map(
+            records.map(record => [
+                record.word_id,
+                record
+            ])
+        );
+
+        for (const row of rows) {
+            const record =
+                recordMap.get(row.id) || {
+                    word_id: row.id,
+                    word: row.word,
+                    part_of_speech: [],
+                    pronunciations: [],
+                    senses: []
+                };
+
+            const selected =
+                selectFields(
+                    record,
+                    fields
+                );
+
+            for (const field of fields) {
+                const value =
+                    selected[field];
+
+                if (
+                    value === undefined ||
+                    value === null
+                ) {
+                    continue;
+                }
+
+                if (
+                    typeof value === "object"
+                ) {
+                    res.write(
+                        `${field}: ${JSON.stringify(value)}\n`
+                    );
+                } else {
+                    res.write(
+                        `${field}: ${value}\n`
+                    );
+                }
+            }
+
+            res.write("\n");
+        }
+
+        offset += rows.length;
+
+        if (
+            rows.length <
+            EXPORT_BATCH_SIZE
+        ) {
+            break;
+        }
+    }
+
+    res.end();
+}
+
+async function streamJson({
+    res,
+    filters,
+    fields
+}) {
+    res.setHeader(
+        "Content-Type",
+        "application/json; charset=utf-8"
+    );
+
+    res.setHeader(
+        "Content-Disposition",
+        'attachment; filename="lexidata-dataset.json"'
+    );
+
+    res.write("[\n");
+
+    let offset = 0;
+    let first = true;
+
+    while (true) {
+        const rows =
+            await datasetService.getDatasetBatch({
+                ...filters,
+                limit:
+                    EXPORT_BATCH_SIZE,
+                offset
+            });
+
+        if (rows.length === 0) {
+            break;
+        }
+
+        const wordIds =
+            rows.map(row => row.id);
+
+        const records =
+            await require(
+                "../services/dataset-record.service"
+            ).getWordRecords({
+                wordIds
+            });
+
+        const recordMap = new Map(
+            records.map(record => [
+                record.word_id,
+                record
+            ])
+        );
+
+        for (const row of rows) {
+            const record =
+                recordMap.get(row.id) || {
+                    word_id: row.id,
+                    word: row.word,
+                    part_of_speech: [],
+                    pronunciations: [],
+                    senses: []
+                };
+
+            const selected =
+                selectFields(
+                    record,
+                    fields
+                );
+
+            if (!first) {
+                res.write(",\n");
+            }
+
+            res.write(
+                JSON.stringify(selected)
+            );
+
+            first = false;
+        }
+
+        offset += rows.length;
+
+        if (
+            rows.length <
+            EXPORT_BATCH_SIZE
+        ) {
+            break;
+        }
+    }
+
+    res.write("\n]\n");
+    res.end();
+}
 
 async function getDataset(req, res, next) {
     try {
-        const limit = Number(req.query.limit ?? 100);
-        const offset = Number(req.query.offset ?? 0);
-        const pos = req.query.pos
-            ? String(req.query.pos).toLowerCase()
-            : null;
-
-        if (
-            !Number.isInteger(limit) ||
-            limit < 1 ||
-            limit > 1000
-        ) {
-            return res.status(400).json({
-                error: {
-                    code: "INVALID_LIMIT",
-                    message: "limit must be an integer between 1 and 1000."
-                }
-            });
-        }
-
-        if (
-            !Number.isInteger(offset) ||
-            offset < 0
-        ) {
-            return res.status(400).json({
-                error: {
-                    code: "INVALID_OFFSET",
-                    message: "offset must be a non-negative integer."
-                }
-            });
-        }
-
-        const allowedPartsOfSpeech = [
-            "noun",
-            "verb",
-            "adjective",
-            "adverb"
-        ];
-
-        if (
-            pos !== null &&
-            !allowedPartsOfSpeech.includes(pos)
-        ) {
-            return res.status(400).json({
-                error: {
-                    code: "INVALID_POS",
-                    message:
-                        "pos must be one of: noun, verb, adjective, adverb."
-                }
-            });
-        }
-
-        const result = await datasetService.getDataset({
+        const {
             limit,
-            offset,
-            pos
-        });
+            page,
+            partOfSpeech,
+            minLength,
+            maxLength,
+            startsWith,
+            endsWith,
+            contains,
+            fields,
+            format
+        } = req.query;
 
-        return res.status(200).json({
-            data: result.words,
-            pagination: {
+        const filterError =
+            validateFilters({
                 limit,
-                offset,
-                total: result.total
+                page,
+                partOfSpeech,
+                minLength,
+                maxLength,
+                startsWith,
+                endsWith,
+                contains
+            });
+
+        if (filterError) {
+            return res.status(400).json({
+                error: filterError
+            });
+        }
+
+        const fieldError =
+            validateFields(fields);
+
+        if (fieldError) {
+            return res.status(400).json({
+                error: fieldError
+            });
+        }
+
+        if (
+            format !== undefined &&
+            !VALID_FORMATS.has(
+                String(format).toLowerCase()
+            )
+        ) {
+            return res.status(400).json({
+                error: {
+                    code: "INVALID_FORMAT",
+                    message:
+                        "The 'format' parameter must be one of: json, jsonl, csv, txt."
+                }
+            });
+        }
+
+        const normalizedFields =
+            normalizeFields(fields);
+
+        const normalizedFilters =
+            normalizeFilters({
+                limit,
+                page,
+                partOfSpeech,
+                minLength,
+                maxLength,
+                startsWith,
+                endsWith,
+                contains
+            });
+
+        const exportFilters = {
+            partOfSpeech:
+                normalizedFilters.partOfSpeech,
+            minLength:
+                normalizedFilters.minLength,
+            maxLength:
+                normalizedFilters.maxLength,
+            startsWith:
+                normalizedFilters.startsWith,
+            endsWith:
+                normalizedFilters.endsWith,
+            contains:
+                normalizedFilters.contains
+        };
+
+        if (format !== undefined) {
+            const normalizedFormat =
+                String(format).toLowerCase();
+
+            if (
+                normalizedFormat === "csv"
+            ) {
+                return streamCsv({
+                    res,
+                    filters: exportFilters,
+                    fields: normalizedFields
+                });
             }
+
+            if (
+                normalizedFormat === "jsonl"
+            ) {
+                return streamJsonl({
+                    res,
+                    filters: exportFilters,
+                    fields: normalizedFields
+                });
+            }
+
+            if (
+                normalizedFormat === "txt"
+            ) {
+                return streamTxt({
+                    res,
+                    filters: exportFilters,
+                    fields: normalizedFields
+                });
+            }
+
+            if (
+                normalizedFormat === "json"
+            ) {
+                return streamJson({
+                    res,
+                    filters: exportFilters,
+                    fields: normalizedFields
+                });
+            }
+        }
+
+        const result =
+            await datasetService.getDataset({
+                limit:
+                    normalizedFilters.limit,
+                page:
+                    normalizedFilters.page,
+                partOfSpeech:
+                    normalizedFilters.partOfSpeech,
+                minLength:
+                    normalizedFilters.minLength,
+                maxLength:
+                    normalizedFilters.maxLength,
+                startsWith:
+                    normalizedFilters.startsWith,
+                endsWith:
+                    normalizedFilters.endsWith,
+                contains:
+                    normalizedFilters.contains
+            });
+
+        const data =
+            result.data.map(record =>
+                selectFields(
+                    record,
+                    normalizedFields
+                )
+            );
+
+        return res.json({
+            data,
+            pagination:
+                result.pagination
         });
     } catch (error) {
         next(error);
