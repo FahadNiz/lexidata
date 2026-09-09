@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 
 const wordRoutes = require("./routes/word.routes");
 const searchRoutes = require("./routes/search.routes");
@@ -8,6 +9,16 @@ const errorMiddleware = require("./middleware/error.middleware");
 
 function createApp() {
     const app = express();
+
+    app.use(
+        cors({
+            origin: [
+                "https://lexidata.dev",
+                "http://localhost:3000"
+            ],
+            methods: ["GET", "HEAD", "OPTIONS"]
+        })
+    );
 
     app.use(express.json());
 
