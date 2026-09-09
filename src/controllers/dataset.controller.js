@@ -1,12 +1,18 @@
 const datasetService = require("../services/dataset.service");
+
 const {
     validateFilters,
     normalizeFilters
 } = require("../utils/word-filters");
+
 const {
     validateFields,
     normalizeFields
 } = require("../utils/dataset-fields");
+
+const {
+    selectFields
+} = require("../services/dataset-fields.service");
 
 const VALID_FORMATS = new Set([
     "json",
@@ -17,82 +23,11 @@ const VALID_FORMATS = new Set([
 
 const EXPORT_BATCH_SIZE = 1000;
 
-function selectFields(record, fields) {
-    const selected = {};
-
-    for (const field of fields) {
-        switch (field) {
-            case "word":
-                selected.word = record.word;
-                break;
-
-            case "part_of_speech":
-                selected.part_of_speech =
-                    record.part_of_speech || [];
-                break;
-
-            case "pronunciations":
-                selected.pronunciations =
-                    record.pronunciations || [];
-                break;
-
-            case "senses":
-                selected.senses =
-                    record.senses || [];
-                break;
-
-            case "synsets":
-                selected.synsets = [
-                    ...new Map(
-                        (record.senses || [])
-                            .map(sense => [
-                                sense.synset,
-                                {
-                                    synset: sense.synset,
-                                    ili_id: sense.ili_id,
-                                    part_of_speech:
-                                        sense.part_of_speech
-                                }
-                            ])
-                    ).values()
-                ];
-                break;
-
-            case "definitions":
-                selected.definitions = [
-                    ...new Set(
-                        (record.senses || [])
-                            .map(sense => sense.definition)
-                            .filter(Boolean)
-                    )
-                ];
-                break;
-
-            case "examples":
-                selected.examples = [
-                    ...new Set(
-                        (record.senses || [])
-                            .flatMap(
-                                sense =>
-                                    sense.examples || []
-                            )
-                            .filter(Boolean)
-                    )
-                ];
-                break;
-
-            case "relations":
-                selected.relations =
-                    record.relations || {};
-                break;
-        }
-    }
-
-    return selected;
-}
-
 function escapeCsv(value) {
-    if (value === null || value === undefined) {
+    if (
+        value === null ||
+        value === undefined
+    ) {
         return "";
     }
 
@@ -130,6 +65,41 @@ function csvValue(value) {
     return String(value);
 }
 
+async function getRichRecords(rows) {
+    const {
+        getWordRecords
+    } = require(
+        "../services/dataset-record.service"
+    );
+
+    const wordIds =
+        rows.map(row => row.id);
+
+    const records =
+        await getWordRecords({
+            wordIds
+        });
+
+    const recordMap = new Map(
+        records.map(record => [
+            record.word_id,
+            record
+        ])
+    );
+
+    return rows.map(row => {
+        return (
+            recordMap.get(row.id) || {
+                word_id: row.id,
+                word: row.word,
+                part_of_speech: [],
+                pronunciations: [],
+                senses: []
+            }
+        );
+    });
+}
+
 async function streamCsv({
     res,
     filters,
@@ -157,42 +127,23 @@ async function streamCsv({
         const rows =
             await datasetService.getDatasetBatch({
                 ...filters,
-                limit:
-                    EXPORT_BATCH_SIZE,
+                limit: EXPORT_BATCH_SIZE,
                 offset
             });
 
-        if (rows.length === 0) {
+        if (
+            rows.length === 0
+        ) {
             break;
         }
 
-        const wordIds =
-            rows.map(row => row.id);
-
         const records =
-            await require(
-                "../services/dataset-record.service"
-            ).getWordRecords({
-                wordIds
-            });
+            await getRichRecords(rows);
 
-        const recordMap = new Map(
-            records.map(record => [
-                record.word_id,
-                record
-            ])
-        );
-
-        for (const row of rows) {
-            const record =
-                recordMap.get(row.id) || {
-                    word_id: row.id,
-                    word: row.word,
-                    part_of_speech: [],
-                    pronunciations: [],
-                    senses: []
-                };
-
+        for (
+            const record
+            of records
+        ) {
             const selected =
                 selectFields(
                     record,
@@ -247,42 +198,23 @@ async function streamJsonl({
         const rows =
             await datasetService.getDatasetBatch({
                 ...filters,
-                limit:
-                    EXPORT_BATCH_SIZE,
+                limit: EXPORT_BATCH_SIZE,
                 offset
             });
 
-        if (rows.length === 0) {
+        if (
+            rows.length === 0
+        ) {
             break;
         }
 
-        const wordIds =
-            rows.map(row => row.id);
-
         const records =
-            await require(
-                "../services/dataset-record.service"
-            ).getWordRecords({
-                wordIds
-            });
+            await getRichRecords(rows);
 
-        const recordMap = new Map(
-            records.map(record => [
-                record.word_id,
-                record
-            ])
-        );
-
-        for (const row of rows) {
-            const record =
-                recordMap.get(row.id) || {
-                    word_id: row.id,
-                    word: row.word,
-                    part_of_speech: [],
-                    pronunciations: [],
-                    senses: []
-                };
-
+        for (
+            const record
+            of records
+        ) {
             const selected =
                 selectFields(
                     record,
@@ -329,55 +261,39 @@ async function streamTxt({
         const rows =
             await datasetService.getDatasetBatch({
                 ...filters,
-                limit:
-                    EXPORT_BATCH_SIZE,
+                limit: EXPORT_BATCH_SIZE,
                 offset
             });
 
-        if (rows.length === 0) {
+        if (
+            rows.length === 0
+        ) {
             break;
         }
 
-        const wordIds =
-            rows.map(row => row.id);
-
         const records =
-            await require(
-                "../services/dataset-record.service"
-            ).getWordRecords({
-                wordIds
-            });
+            await getRichRecords(rows);
 
-        const recordMap = new Map(
-            records.map(record => [
-                record.word_id,
-                record
-            ])
-        );
-
-        for (const row of rows) {
-            const record =
-                recordMap.get(row.id) || {
-                    word_id: row.id,
-                    word: row.word,
-                    part_of_speech: [],
-                    pronunciations: [],
-                    senses: []
-                };
-
+        for (
+            const record
+            of records
+        ) {
             const selected =
                 selectFields(
                     record,
                     fields
                 );
 
-            for (const field of fields) {
+            for (
+                const field
+                of fields
+            ) {
                 const value =
                     selected[field];
 
                 if (
-                    value === undefined ||
-                    value === null
+                    value === null ||
+                    value === undefined
                 ) {
                     continue;
                 }
@@ -435,42 +351,23 @@ async function streamJson({
         const rows =
             await datasetService.getDatasetBatch({
                 ...filters,
-                limit:
-                    EXPORT_BATCH_SIZE,
+                limit: EXPORT_BATCH_SIZE,
                 offset
             });
 
-        if (rows.length === 0) {
+        if (
+            rows.length === 0
+        ) {
             break;
         }
 
-        const wordIds =
-            rows.map(row => row.id);
-
         const records =
-            await require(
-                "../services/dataset-record.service"
-            ).getWordRecords({
-                wordIds
-            });
+            await getRichRecords(rows);
 
-        const recordMap = new Map(
-            records.map(record => [
-                record.word_id,
-                record
-            ])
-        );
-
-        for (const row of rows) {
-            const record =
-                recordMap.get(row.id) || {
-                    word_id: row.id,
-                    word: row.word,
-                    part_of_speech: [],
-                    pronunciations: [],
-                    senses: []
-                };
-
+        for (
+            const record
+            of records
+        ) {
             const selected =
                 selectFields(
                     record,
@@ -502,7 +399,11 @@ async function streamJson({
     res.end();
 }
 
-async function getDataset(req, res, next) {
+async function getDataset(
+    req,
+    res,
+    next
+) {
     try {
         const {
             limit,
@@ -589,7 +490,9 @@ async function getDataset(req, res, next) {
                 normalizedFilters.contains
         };
 
-        if (format !== undefined) {
+        if (
+            format !== undefined
+        ) {
             const normalizedFormat =
                 String(format).toLowerCase();
 
