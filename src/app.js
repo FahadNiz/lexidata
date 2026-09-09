@@ -4,6 +4,7 @@ const cors = require("cors");
 const wordRoutes = require("./routes/word.routes");
 const searchRoutes = require("./routes/search.routes");
 const randomRoutes = require("./routes/random.routes");
+const datasetRoutes = require("./routes/dataset.routes");
 const notFoundMiddleware = require("./middleware/not-found.middleware");
 const errorMiddleware = require("./middleware/error.middleware");
 
@@ -41,6 +42,11 @@ function createApp() {
     app.use(
         "/api/v1/random",
         randomRoutes
+    );
+
+    app.use(
+        "/api/v1/dataset",
+        datasetRoutes
     );
 
     app.use(notFoundMiddleware);
