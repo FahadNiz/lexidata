@@ -68,10 +68,18 @@ function validateFields(fields) {
         };
     }
 
-    if (requestedFields.includes("all")) {
+    // A preset can be used directly.
+    if (
+        requestedFields.length === 1 &&
+        Object.prototype.hasOwnProperty.call(
+            FIELD_PRESETS,
+            requestedFields[0]
+        )
+    ) {
         return null;
     }
 
+    // Otherwise every requested value must be a real field.
     for (const field of requestedFields) {
         if (!VALID_FIELDS.has(field)) {
             return {
@@ -87,35 +95,36 @@ function validateFields(fields) {
 
 function normalizeFields(fields) {
     if (fields === undefined) {
-        return [...FIELD_PRESETS.basic];
+        return FIELD_PRESETS.basic;
     }
 
-    const value = String(fields)
-        .trim()
-        .toLowerCase();
-
-    if (value === "all") {
-        return [...FIELD_PRESETS.all];
-    }
-
-    if (FIELD_PRESETS[value]) {
-        return [...FIELD_PRESETS[value]];
-    }
-
-    const requestedFields = value
+    const requestedFields = fields
         .split(",")
-        .map(field => field.trim())
+        .map(field => field.trim().toLowerCase())
         .filter(Boolean);
 
-    const uniqueFields = [
+    // Preset
+    if (
+        requestedFields.length === 1 &&
+        Object.prototype.hasOwnProperty.call(
+            FIELD_PRESETS,
+            requestedFields[0]
+        )
+    ) {
+        return [...FIELD_PRESETS[requestedFields[0]]];
+    }
+
+    // Explicit fields
+    const normalized = [
         ...new Set(requestedFields)
     ];
 
-    if (!uniqueFields.includes("word")) {
-        uniqueFields.unshift("word");
+    // Word is always included.
+    if (!normalized.includes("word")) {
+        normalized.unshift("word");
     }
 
-    return uniqueFields;
+    return normalized;
 }
 
 module.exports = {
