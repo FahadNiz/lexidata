@@ -1,6 +1,24 @@
 # Lexidata
 
-Open lexical data and a developer-friendly REST API for English words.
+<p align="center">
+  <img
+    src="./assets/branding/Lexidata-logo-primary.svg"
+    alt="Lexidata"
+    width="560"
+  />
+</p>
+
+<p align="center">
+  Open lexical data and a developer-friendly REST API for English words.
+</p>
+
+<p align="center">
+  <a href="https://api.lexidata.dev">Production API</a>
+  ·
+  <a href="https://lexidata.dev">Website</a>
+  ·
+  <a href="https://github.com/FahadNiz/lexidata">GitHub</a>
+</p>
 
 Lexidata is an open-source project built with Node.js, Express, PostgreSQL, and data derived from Princeton WordNet.
 
@@ -205,6 +223,10 @@ See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) for attribution and licensi
 
 ```text
 lexidata/
+├── assets/
+│   └── branding/
+│       ├── Lexidata-logo-icon.svg
+│       └── Lexidata-logo-primary.svg
 ├── src/
 │   ├── database/
 │   ├── routes/
@@ -236,3 +258,4 @@ See [LICENSE](LICENSE).
 - Repository: https://github.com/FahadNiz/lexidata
 - Production API: https://api.lexidata.dev
 - API health: https://api.lexidata.dev/health
+- Website: https://lexidata.dev
