@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 
+const rootController = require("./controllers/root.controller");
 const wordRoutes = require("./routes/word.routes");
 const searchRoutes = require("./routes/search.routes");
 const randomRoutes = require("./routes/random.routes");
@@ -13,21 +14,17 @@ function createApp() {
 
     app.use(
         cors({
-            origin: [
-                "https://lexidata.dev",
-                "http://localhost:3000"
-            ],
+            origin: "*",
             methods: ["GET", "HEAD", "OPTIONS"]
         })
     );
 
     app.use(express.json());
 
-    app.get("/health", (req, res) => {
-        res.status(200).json({
-            status: "ok"
-        });
-    });
+    app.get("/", rootController.getRoot);
+    app.get("/api", rootController.getApiIndex);
+    app.get("/api/v1", rootController.getApiIndex);
+    app.get("/health", rootController.getHealth);
 
     app.use(
         "/api/v1/words",

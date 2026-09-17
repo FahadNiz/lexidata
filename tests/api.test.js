@@ -8,10 +8,13 @@ const createApp = require("../src/app");
 let server;
 let baseUrl;
 
-function request(path) {
+function request(path, headers = {}) {
     return new Promise((resolve, reject) => {
+        const url = new URL(`${baseUrl}${path}`);
+
         const req = http.get(
-            `${baseUrl}${path}`,
+            url,
+            { headers },
             (res) => {
                 let body = "";
 
@@ -30,6 +33,7 @@ function request(path) {
 
                     resolve({
                         statusCode: res.statusCode,
+                        headers: res.headers,
                         data
                     });
                 });
@@ -65,6 +69,42 @@ test.after(async () => {
             resolve();
         });
     });
+});
+
+test("GET / returns JSON API metadata by default", async () => {
+    const response = await request("/");
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.data.name, "Lexidata API");
+    assert.equal(response.data.status, "operational");
+    assert.ok(response.data.endpoints);
+    assert.ok(response.data.endpoints.words);
+    assert.ok(response.data.endpoints.search);
+});
+
+test("GET / returns HTML landing page when Accept: text/html", async () => {
+    const response = await request("/", { Accept: "text/html,application/xhtml+xml" });
+
+    assert.equal(response.statusCode, 200);
+    assert.ok(response.headers["content-type"].includes("text/html"));
+    assert.ok(typeof response.data === "string");
+    assert.ok(response.data.includes("Lexidata API"));
+    assert.ok(response.data.includes("Live API Sandbox"));
+});
+
+test("GET /api returns JSON API metadata", async () => {
+    const response = await request("/api");
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.data.name, "Lexidata API");
+});
+
+test("GET /api/v1 returns JSON API metadata", async () => {
+    const response = await request("/api/v1");
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.data.name, "Lexidata API");
+    assert.equal(response.data.version, "1.0.0");
 });
 
 test("GET /health returns ok", async () => {
