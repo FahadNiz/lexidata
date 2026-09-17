@@ -6,7 +6,7 @@ function renderApiLandingHtml(meta) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lexidata API — Open Lexical Data & Dictionary REST API</title>
+  <title>Lexidata API</title>
   <meta name="description" content="Open lexical data and REST API for English words, definitions, senses, pronunciations, and datasets powered by Open English WordNet.">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='70 80 400 360'%3E%3Cdefs%3E%3Cstyle%3E.s0%7Bfill:%233bb2f6%7D.s2%7Bfill:%2393c5fd%7D.s3%7Bfill:%23e5e7eb%7D%3C/style%3E%3C/defs%3E%3Cg%3E%3Cpath class='s2' d='M138.74,205.53v127.56s84.17-.65,123.02,58.92c0,0-11.65-53.74-67.34-71.22,0,0-9.71-12.95,5.83-18.13,0,0,16.24-4.83-14.84-61.59,0,0-25.14-31.83-46.67-35.53Z'/%3E%3Cpath class='s2' d='M279.53,392.98s18.13-53.92,65.07-71.72l1.94-57.95s14.89-46.27,56.66-56.8v126.41s-62.81-7.34-123.67,60.07Z'/%3E%3Cpath class='s0' d='M97.69,239.35l27.84,6.47v98.42s112.99,4.53,143.74,84.82c0,0-70.9-55.36-171.58-59.25v-130.47Z'/%3E%3Cpath class='s0' d='M444.31,239.35l-27.84,6.47v98.42s-112.99,4.53-143.74,84.82c0,0,70.9-55.36,171.58-59.25v-130.47Z'/%3E%3Cpath class='s3' d='M197.51,112.93h87.14v4.69s-19.1,5.99-19.42,18.78c-.32,12.79,0,158.8,0,158.8,0,0,25.09,22.01,63.62-38.04,0,0,5.83-3.4,5.83,0v58.27h-134.42v-5.67s12.85.49,17.22-16.19v-155.24s-5.94-18.94-19.96-18.94v-6.47Z'/%3E%3Cpath class='s0' d='M348.91,115.36s-6.76,44.35-40.47,44.35c0,0,40.47,6.51,40.47,41.12s0-85.47,0-85.47Z'/%3E%3Cpath class='s0' d='M348.91,115.36s6.76,44.35,40.47,44.35c0,0-40.47,6.51-40.47,41.12,0,34.61,0-85.47,0-85.47Z'/%3E%3C/g%3E%3C/svg%3E">
   <style>
