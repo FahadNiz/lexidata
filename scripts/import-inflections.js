@@ -123,9 +123,19 @@ function generateAdjectiveForms(lemma) {
     return results;
 }
 
-// Load irregular forms from WordNet raw entries
+// Load irregular forms from WordNet raw entries or packaged JSON
 function loadIrregularForms() {
     const irregulars = new Map(); // lemma -> Array<{ inflected: string, type: string }>
+
+    const packagedPath = path.join(__dirname, "..", "src", "data", "wordnet-irregulars.json");
+    if (fs.existsSync(packagedPath)) {
+        const json = JSON.parse(fs.readFileSync(packagedPath, "utf8"));
+        for (const [lemma, list] of Object.entries(json)) {
+            irregulars.set(lemma, list);
+        }
+        return irregulars;
+    }
+
     if (!fs.existsSync(DATA_PATH)) {
         return irregulars;
     }
