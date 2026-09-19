@@ -39,3 +39,28 @@ test("findWord returns null for an unknown word", async () => {
 
     assert.equal(result, null);
 });
+
+test("findWord resolves inflected past tense form (communicated)", async () => {
+    const result = await wordService.findWord("communicated");
+
+    assert.ok(result);
+    assert.equal(result.word, "communicate");
+    assert.ok(Array.isArray(result.senses));
+    assert.ok(result.senses.length > 0);
+});
+
+test("findWord resolves plural noun form (cats)", async () => {
+    const result = await wordService.findWord("cats");
+
+    assert.ok(result);
+    assert.equal(result.word, "cat");
+    assert.ok(Array.isArray(result.senses));
+});
+
+test("findWord resolves comparative/superlative forms (happiest)", async () => {
+    const result = await wordService.findWord("happiest");
+
+    assert.ok(result);
+    assert.equal(result.word, "happy");
+    assert.ok(Array.isArray(result.senses));
+});

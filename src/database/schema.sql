@@ -156,13 +156,15 @@ CREATE TABLE word_inflections (
         UNIQUE (word_id, inflected_word, inflection_type),
 
     CONSTRAINT word_inflections_type_check
-        CHECK (inflection_type IN ('plural', 'singular', 'past_tense', 'past_participle', 'present_participle', 'present_3rd_person', 'comparative', 'superlative', 'future', 'gerund'))
+        CHECK (inflection_type IN ('plural', 'singular', 'past_tense', 'past_participle', 'present_participle', 'present_3rd_person', 'comparative', 'superlative', 'future', 'gerund', 'irregular'))
 );
 
 CREATE INDEX idx_word_inflections_word_id
     ON word_inflections(word_id);
 CREATE INDEX idx_word_inflections_inflected
     ON word_inflections(inflected_word);
+CREATE INDEX idx_word_inflections_normalized
+    ON word_inflections(normalized_word);
 CREATE INDEX idx_word_inflections_type
     ON word_inflections(inflection_type);
 

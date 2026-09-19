@@ -144,6 +144,35 @@ test("GET /api/v1/words/communicate returns dictionary data", async () => {
     );
 });
 
+test("GET /api/v1/words/:word resolves inflected word (communicated)", async () => {
+    const response =
+        await request(
+            "/api/v1/words/communicated"
+        );
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(
+        response.data.data.word,
+        "communicate"
+    );
+    assert.ok(
+        response.data.data.senses.length > 0
+    );
+});
+
+test("GET /api/v1/words/:word resolves plural word (cats)", async () => {
+    const response =
+        await request(
+            "/api/v1/words/cats"
+        );
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(
+        response.data.data.word,
+        "cat"
+    );
+});
+
 test("word lookup is case-insensitive", async () => {
     const response =
         await request(
