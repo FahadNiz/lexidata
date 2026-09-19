@@ -139,6 +139,33 @@ CREATE TABLE synset_relations (
 );
 
 
+CREATE TABLE word_inflections (
+    id BIGSERIAL PRIMARY KEY,
+    word_id BIGINT NOT NULL,
+    inflected_word TEXT NOT NULL,
+    inflection_type VARCHAR(30) NOT NULL,
+    normalized_word TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT word_inflections_word_fk
+        FOREIGN KEY (word_id)
+        REFERENCES words(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT word_inflections_word_type_unique
+        UNIQUE (word_id, inflected_word, inflection_type),
+
+    CONSTRAINT word_inflections_type_check
+        CHECK (inflection_type IN ('plural', 'singular', 'past_tense', 'past_participle', 'present_participle', 'present_3rd_person', 'comparative', 'superlative', 'future', 'gerund'))
+);
+
+CREATE INDEX idx_word_inflections_word_id
+    ON word_inflections(word_id);
+CREATE INDEX idx_word_inflections_inflected
+    ON word_inflections(inflected_word);
+CREATE INDEX idx_word_inflections_type
+    ON word_inflections(inflection_type);
+
 CREATE INDEX idx_words_normalized_word
     ON words(normalized_word);
 
